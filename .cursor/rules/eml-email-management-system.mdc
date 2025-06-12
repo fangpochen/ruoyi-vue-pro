@@ -1,0 +1,547 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# EML 邮件管理系统开发规范
+
+## 项目概述
+
+基于 Yudao 框架开发的 Web 端 EML 邮件管理系统，支持用户上传 ZIP 压缩包，自动解析其中的 .eml 文件，提取邮件信息并存储到数据库，附件存储到 MinIO，提供完整的邮件查看、搜索、标记和管理功能。
+
+## 技术架构
+
+### 后端技术栈
+- **框架**: Spring Boot 3.x (基于 Yudao 框架)
+- **数据持久化**: MyBatis-Plus + MySQL
+- **文件存储**: MinIO (通过 yudao-module-infra-file 集成)
+- **邮件解析**: JavaMail API
+- **权限管理**: 复用 Yudao RBAC 权限系统
+- **任务调度**: Spring Task (异步处理大文件解析)
+
+### 前端技术栈
+- **框架**: Vue.js 3.x + Element Plus
+- **状态管理**: Pinia
+- **路由**: Vue Router
+- **HTTP 客户端**: Axios
+- **UI 组件**: Element Plus
+
+### 部署技术
+- **容器化**: Docker + Docker Compose
+- **文件存储**: MinIO 服务
+- **数据库**: MySQL 8.0+
+
+## 模块结构
+
+```
+yudao-module-tool/
+├── yudao-module-tool-api/
+│   └── src/main/java/cn/iocoder/yudao/module/tool/api/eml/
+├── yudao-module-tool-biz/
+│   └── src/main/java/cn/iocoder/yudao/module/tool/
+│       ├── controller/admin/eml/
+│       ├── service/eml/
+│       ├── dal/
+│       │   ├── dataobject/eml/
+│       │   └── mysql/eml/
+│       └── convert/eml/
+└── sql/
+    └── eml/
+```
+
+## 核心数据模型
+
+### 1. EmailMessage (邮件主体)
+```sql
+CREATE TABLE tool_email_message (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    import_batch_id BIGINT NOT NULL COMMENT '导入批次ID',
+    message_id VARCHAR(500) COMMENT 'Message-ID头',
+    sender VARCHAR(200) NOT NULL COMMENT '发件人',
+    recipients TEXT COMMENT '收件人列表(JSON)',
+    cc_recipients TEXT COMMENT '抄送列表(JSON)',
+    bcc_recipients TEXT COMMENT '密送列表(JSON)',
+    subject VARCHAR(1000) COMMENT '主题',
+    send_date DATETIME COMMENT '发送时间',
+    receive_date DATETIME COMMENT '接收时间',
+    content_text LONGTEXT COMMENT '纯文本内容',
+    content_html LONGTEXT COMMENT 'HTML内容',
+    original_path VARCHAR(1000) NOT NULL COMMENT '原始文件路径',
+    attachment_count INT DEFAULT 0 COMMENT '附件数量',
+    is_starred BOOLEAN DEFAULT FALSE COMMENT '是否标记星标',
+    creator VARCHAR(64) DEFAULT '',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updater VARCHAR(64) DEFAULT '',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted BIT(1) DEFAULT 0,
+    tenant_id BIGINT DEFAULT 0
+);
+```
+
+### 2. EmailAttachment (邮件附件)
+```sql
+CREATE TABLE tool_email_attachment (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    email_message_id BIGINT NOT NULL COMMENT '邮件ID',
+    filename VARCHAR(500) NOT NULL COMMENT '文件名',
+    content_type VARCHAR(200) COMMENT '文件类型',
+    file_size BIGINT COMMENT '文件大小',
+    file_url VARCHAR(1000) NOT NULL COMMENT 'MinIO存储URL',
+    file_path VARCHAR(1000) NOT NULL COMMENT 'MinIO存储路径',
+    creator VARCHAR(64) DEFAULT '',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    deleted BIT(1) DEFAULT 0,
+    tenant_id BIGINT DEFAULT 0
+);
+```
+
+### 3. ImportBatch (导入批次)
+```sql
+CREATE TABLE tool_import_batch (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    batch_name VARCHAR(200) NOT NULL COMMENT '批次名称',
+    zip_filename VARCHAR(500) NOT NULL COMMENT 'ZIP文件名',
+    status TINYINT NOT NULL COMMENT '状态：1-处理中,2-成功,3-部分失败,4-失败',
+    total_files INT DEFAULT 0 COMMENT '总文件数',
+    success_count INT DEFAULT 0 COMMENT '成功数',
+    fail_count INT DEFAULT 0 COMMENT '失败数',
+    start_time DATETIME COMMENT '开始时间',
+    end_time DATETIME COMMENT '结束时间',
+    error_message TEXT COMMENT '错误信息',
+    creator VARCHAR(64) DEFAULT '',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    tenant_id BIGINT DEFAULT 0
+);
+```
+
+### 4. ImportErrorLog (导入错误日志)
+```sql
+CREATE TABLE tool_import_error_log (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    import_batch_id BIGINT NOT NULL COMMENT '导入批次ID',
+    file_path VARCHAR(1000) NOT NULL COMMENT '错误文件路径',
+    error_type VARCHAR(100) COMMENT '错误类型',
+    error_message TEXT NOT NULL COMMENT '错误详情',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    tenant_id BIGINT DEFAULT 0
+);
+```
+
+## 核心业务逻辑
+
+### 1. ZIP 文件上传与解析流程
+```java
+@Service
+public class EmlImportService {
+    
+    @Async
+    public void processZipFile(MultipartFile zipFile, Long userId) {
+        // 1. 创建导入批次记录
+        // 2. 解压ZIP文件到临时目录
+        // 3. 递归扫描.eml文件
+        // 4. 逐个解析.eml文件
+        // 5. 提取附件并上传到MinIO
+        // 6. 保存邮件数据到数据库
+        // 7. 更新批次状态
+        // 8. 清理临时文件
+    }
+    
+    private void parseEmlFile(File emlFile, String relativePath, Long batchId) {
+        // 使用JavaMail解析EML文件
+        // 提取邮件头、正文、附件
+        // 处理字符编码问题
+        // 错误处理和日志记录
+    }
+}
+```
+
+### 2. MinIO 文件存储集成
+```java
+@Component
+public class EmlFileService {
+    
+    @Autowired
+    private FileApi fileApi; // 使用Yudao的文件API
+    
+    public String uploadAttachment(byte[] content, String filename, String contentType) {
+        // 通过Yudao的FileApi上传附件到MinIO
+        // 返回文件访问URL
+    }
+    
+    public void deleteAttachment(String filePath) {
+        // 删除MinIO中的附件文件
+    }
+}
+```
+
+## API 接口规范
+
+### 1. 邮件管理接口
+```java
+@RestController
+@RequestMapping("/admin-api/tool/eml")
+public class EmlController {
+    
+    @PostMapping("/upload-zip")
+    @Operation(summary = "上传ZIP压缩包进行EML导入")
+    public CommonResult<Long> uploadZip(@RequestParam("file") MultipartFile file);
+    
+    @GetMapping("/page")
+    @Operation(summary = "分页查询邮件列表")
+    public CommonResult<PageResult<EmailMessageRespVO>> getEmailMessagePage(@Valid EmailMessagePageReqVO pageReqVO);
+    
+    @GetMapping("/{id}")
+    @Operation(summary = "获取邮件详情")
+    public CommonResult<EmailMessageRespVO> getEmailMessage(@PathVariable("id") Long id);
+    
+    @PutMapping("/{id}/toggle-star")
+    @Operation(summary = "切换邮件星标状态")
+    public CommonResult<Boolean> toggleStar(@PathVariable("id") Long id);
+    
+    @GetMapping("/attachment/{attachmentId}/download")
+    @Operation(summary = "下载附件")
+    public void downloadAttachment(@PathVariable("attachmentId") Long attachmentId, HttpServletResponse response);
+    
+    @DeleteMapping("")
+    @Operation(summary = "批量删除邮件")
+    public CommonResult<Boolean> deleteEmailMessages(@RequestBody List<Long> ids);
+}
+```
+
+### 2. 导入管理接口
+```java
+@RestController
+@RequestMapping("/admin-api/tool/eml/import")
+public class EmlImportController {
+    
+    @GetMapping("/batches")
+    @Operation(summary = "查询导入批次列表")
+    public CommonResult<PageResult<ImportBatchRespVO>> getImportBatches(@Valid ImportBatchPageReqVO pageReqVO);
+    
+    @GetMapping("/errors/{batchId}")
+    @Operation(summary = "查询导入错误日志")
+    public CommonResult<List<ImportErrorLogRespVO>> getImportErrors(@PathVariable("batchId") Long batchId);
+}
+```
+
+## 前端组件设计
+
+### 1. 邮件列表页面 (EmailList.vue)
+```vue
+<template>
+  <div class="app-container">
+    <!-- 搜索表单 -->
+    <el-form :model="queryParams" ref="queryFormRef" :inline="true">
+      <el-form-item label="主题" prop="subject">
+        <el-input v-model="queryParams.subject" placeholder="请输入主题" />
+      </el-form-item>
+      <el-form-item label="发件人" prop="sender">
+        <el-input v-model="queryParams.sender" placeholder="请输入发件人" />
+      </el-form-item>
+      <el-form-item label="原始路径" prop="originalPath">
+        <el-input v-model="queryParams.originalPath" placeholder="请输入路径" />
+      </el-form-item>
+      <el-form-item label="是否星标" prop="isStarred">
+        <el-select v-model="queryParams.isStarred">
+          <el-option label="全部" value="" />
+          <el-option label="已标记" :value="true" />
+          <el-option label="未标记" :value="false" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+    
+    <!-- 邮件列表表格 -->
+    <el-table :data="emailList" v-loading="loading">
+      <el-table-column type="selection" width="55" />
+      <el-table-column label="星标" width="60">
+        <template #default="{ row }">
+          <el-button 
+            :icon="row.isStarred ? Star : StarFilled" 
+            @click="toggleStar(row)"
+            text
+          />
+        </template>
+      </el-table-column>
+      <el-table-column prop="subject" label="主题" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="sender" label="发件人" width="150" />
+      <el-table-column prop="sendDate" label="发送时间" width="150" />
+      <el-table-column prop="attachmentCount" label="附件" width="60" />
+      <el-table-column prop="originalPath" label="原始路径" min-width="200" show-overflow-tooltip />
+      <el-table-column label="操作" width="120">
+        <template #default="{ row }">
+          <el-button @click="viewDetail(row)" type="primary" link>查看</el-button>
+          <el-button @click="deleteEmail(row)" type="danger" link>删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+</template>
+```
+
+### 2. 邮件详情页面 (EmailDetail.vue)
+```vue
+<template>
+  <div class="email-detail">
+    <!-- 邮件头信息 -->
+    <el-card class="email-header">
+      <div class="header-info">
+        <h2>{{ emailDetail.subject }}</h2>
+        <p><strong>发件人:</strong> {{ emailDetail.sender }}</p>
+        <p><strong>收件人:</strong> {{ emailDetail.recipients?.join(', ') }}</p>
+        <p><strong>发送时间:</strong> {{ emailDetail.sendDate }}</p>
+        <p><strong>原始路径:</strong> {{ emailDetail.originalPath }}</p>
+      </div>
+    </el-card>
+    
+    <!-- 双栏内容显示 -->
+    <div class="content-container">
+      <el-row :gutter="20">
+        <el-col :span="collapseLeft ? 0 : 12" v-show="!collapseLeft">
+          <el-card header="原始内容">
+            <div class="content-controls">
+              <el-radio-group v-model="contentType">
+                <el-radio-button label="html">HTML</el-radio-button>
+                <el-radio-button label="text">纯文本</el-radio-button>
+              </el-radio-group>
+              <el-button @click="collapseLeft = true" :icon="ArrowLeft" />
+            </div>
+            <div v-if="contentType === 'html'" v-html="sanitizedHtml" class="html-content"></div>
+            <pre v-else class="text-content">{{ emailDetail.contentText }}</pre>
+          </el-card>
+        </el-col>
+        
+        <el-col :span="collapseRight ? 0 : 12" v-show="!collapseRight">
+          <el-card header="翻译内容（预留）">
+            <div class="content-controls">
+              <el-button @click="collapseRight = true" :icon="ArrowRight" />
+              <el-button @click="resetLayout">重置布局</el-button>
+            </div>
+            <div class="translation-placeholder">
+              <p>翻译功能待开发...</p>
+              <div v-if="contentType === 'html'" v-html="sanitizedHtml" class="html-content"></div>
+              <pre v-else class="text-content">{{ emailDetail.contentText }}</pre>
+            </div>
+          </el-card>
+        </el-col>
+        
+        <el-col :span="24" v-show="collapseLeft && collapseRight">
+          <el-card>
+            <div class="expand-controls">
+              <el-button @click="expandLeft">显示原始内容</el-button>
+              <el-button @click="expandRight">显示翻译内容</el-button>
+              <el-button @click="resetLayout">显示双栏</el-button>
+            </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+    
+    <!-- 附件列表 -->
+    <el-card v-if="emailDetail.attachments?.length > 0" header="附件列表">
+      <el-table :data="emailDetail.attachments">
+        <el-table-column prop="filename" label="文件名" />
+        <el-table-column prop="contentType" label="类型" width="120" />
+        <el-table-column prop="fileSize" label="大小" width="100">
+          <template #default="{ row }">
+            {{ formatFileSize(row.fileSize) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100">
+          <template #default="{ row }">
+            <el-button @click="downloadAttachment(row)" :icon="Download" />
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </div>
+</template>
+```
+
+### 3. ZIP 上传组件 (ZipUpload.vue)
+```vue
+<template>
+  <div class="zip-upload">
+    <el-card header="导入EML邮件">
+      <el-upload
+        ref="uploadRef"
+        :action="uploadUrl"
+        :headers="uploadHeaders"
+        :before-upload="beforeUpload"
+        :on-success="onSuccess"
+        :on-error="onError"
+        :show-file-list="true"
+        :limit="1"
+        accept=".zip"
+        drag
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">
+          将ZIP文件拖到此处，或<em>点击上传</em>
+        </div>
+        <template #tip>
+          <div class="el-upload__tip">
+            只能上传ZIP文件，系统将自动解析其中的EML文件
+          </div>
+        </template>
+      </el-upload>
+    </el-card>
+    
+    <!-- 导入历史 -->
+    <el-card header="导入历史" class="mt-4">
+      <el-table :data="importBatches" v-loading="batchLoading">
+        <el-table-column prop="batchName" label="批次名称" />
+        <el-table-column prop="zipFilename" label="ZIP文件" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.status)">
+              {{ getStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="successCount" label="成功" width="80" />
+        <el-table-column prop="failCount" label="失败" width="80" />
+        <el-table-column prop="createTime" label="创建时间" width="150" />
+        <el-table-column label="操作" width="120">
+          <template #default="{ row }">
+            <el-button v-if="row.failCount > 0" @click="viewErrors(row)" type="warning" link>
+              查看错误
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </div>
+</template>
+```
+
+## 权限配置
+
+### 菜单权限配置
+```sql
+-- EML邮件管理菜单
+INSERT INTO system_menu (name, permission, type, sort, parent_id, path, icon, component, status) VALUES
+('EML邮件管理', '', 1, 10, 1264, 'eml', 'email', 'tool/eml/index', 0),
+('邮件查询', 'tool:eml:query', 3, 1, (SELECT id FROM system_menu WHERE permission = '' AND name = 'EML邮件管理'), '', '', '', 0),
+('邮件导入', 'tool:eml:import', 3, 2, (SELECT id FROM system_menu WHERE permission = '' AND name = 'EML邮件管理'), '', '', '', 0),
+('邮件删除', 'tool:eml:delete', 3, 3, (SELECT id FROM system_menu WHERE permission = '' AND name = 'EML邮件管理'), '', '', '', 0),
+('附件下载', 'tool:eml:download', 3, 4, (SELECT id FROM system_menu WHERE permission = '' AND name = 'EML邮件管理'), '', '', '', 0);
+```
+
+## 配置要求
+
+### application.yml 配置
+```yaml
+# EML导入配置
+yudao:
+  eml:
+    import:
+      temp-dir: /tmp/eml-import  # 临时文件目录
+      max-file-size: 500MB       # 最大ZIP文件大小
+      max-eml-files: 10000       # 单次最大EML文件数量
+      thread-pool-size: 5        # 解析线程池大小
+      cleanup-temp-files: true   # 是否自动清理临时文件
+```
+
+### MinIO 配置要求
+参考现有的 [application-local.yaml](mdc:yudao-server/src/main/resources/application-local.yaml) 文件，确保 MinIO 配置正确：
+
+```yaml
+yudao:
+  file:
+    config:
+      - platform: minio
+        domain: http://127.0.0.1:9000
+        bucket: yudao
+        access-key: yudaoadmin
+        access-secret: yudao123456
+        endpoint: http://127.0.0.1:9000
+```
+
+## 部署配置
+
+### Docker Compose 配置
+```yaml
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ruoyi-vue-pro
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: yudaoadmin
+      MINIO_ROOT_PASSWORD: yudao123456
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  yudao-server:
+    build: .
+    ports:
+      - "48080:48080"
+    depends_on:
+      - mysql
+      - redis
+      - minio
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/ruoyi-vue-pro
+      SPRING_REDIS_HOST: redis
+      YUDAO_FILE_MINIO_ENDPOINT: http://minio:9000
+
+volumes:
+  mysql_data:
+  minio_data:
+```
+
+## 开发指导原则
+
+### 1. 代码组织原则
+- 遵循 Yudao 框架的分层架构：Controller -> Service -> Mapper
+- 使用 Yudao 的统一响应格式 CommonResult
+- 统一异常处理和错误码定义
+- 使用 Yudao 的分页查询 PageResult
+
+### 2. 数据安全原则
+- HTML 内容需要进行 XSS 防护处理
+- 文件上传需要类型和大小限制
+- 敏感信息加密存储
+- 权限校验贯穿整个业务流程
+
+### 3. 性能优化原则
+- 大文件异步处理，避免阻塞用户操作
+- 邮件内容分页加载
+- 附件懒加载
+- 数据库索引优化
+
+### 4. 错误处理原则
+- 详细的错误日志记录
+- 用户友好的错误提示
+- 业务异常和系统异常分离处理
+- 支持错误重试机制
+
+### 5. 扩展性原则
+- 预留翻译功能接口
+- 支持多种邮件格式扩展
+- 支持多种文件存储后端
+- 支持邮件内容搜索引擎集成
+
+---
+
+**方总牛逼** 🚀
+

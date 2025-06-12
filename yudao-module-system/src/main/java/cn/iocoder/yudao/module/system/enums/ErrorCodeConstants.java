@@ -129,6 +129,14 @@ public interface ErrorCodeConstants {
     ErrorCode SOCIAL_CLIENT_NOT_EXISTS = new ErrorCode(1_002_018_210, "社交客户端不存在");
     ErrorCode SOCIAL_CLIENT_UNIQUE = new ErrorCode(1_002_018_211, "社交客户端已存在配置");
 
+    // ========== 邮件导入模块 1-002-019-000 =========
+    ErrorCode FILE_IS_EMPTY = new ErrorCode(1_002_019_000, "上传文件不能为空");
+    ErrorCode FILE_TYPE_ERROR = new ErrorCode(1_002_019_001, "文件类型错误，只支持ZIP文件");
+    ErrorCode FILE_SIZE_TOO_LARGE = new ErrorCode(1_002_019_002, "文件大小超过限制");
+    ErrorCode EMAIL_MESSAGE_NOT_EXISTS = new ErrorCode(1_002_019_003, "邮件不存在");
+    ErrorCode ATTACHMENT_NOT_EXISTS = new ErrorCode(1_002_019_004, "附件不存在");
+    ErrorCode ATTACHMENT_DOWNLOAD_FAILED = new ErrorCode(1_002_019_005, "附件下载失败");
+
     // ========== OAuth2 客户端 1-002-020-000 =========
     ErrorCode OAUTH2_CLIENT_NOT_EXISTS = new ErrorCode(1_002_020_000, "OAuth2 客户端不存在");
     ErrorCode OAUTH2_CLIENT_EXISTS = new ErrorCode(1_002_020_001, "OAuth2 客户端编号已存在");
