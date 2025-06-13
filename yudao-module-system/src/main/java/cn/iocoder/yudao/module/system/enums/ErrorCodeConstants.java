@@ -133,7 +133,7 @@ public interface ErrorCodeConstants {
     ErrorCode FILE_IS_EMPTY = new ErrorCode(1_002_019_000, "上传文件不能为空");
     ErrorCode FILE_TYPE_ERROR = new ErrorCode(1_002_019_001, "文件类型错误，只支持ZIP文件");
     ErrorCode FILE_SIZE_TOO_LARGE = new ErrorCode(1_002_019_002, "文件大小超过限制");
-    ErrorCode EMAIL_MESSAGE_NOT_EXISTS = new ErrorCode(1_002_019_003, "邮件不存在");
+
     ErrorCode ATTACHMENT_NOT_EXISTS = new ErrorCode(1_002_019_004, "附件不存在");
     ErrorCode ATTACHMENT_DOWNLOAD_FAILED = new ErrorCode(1_002_019_005, "附件下载失败");
 

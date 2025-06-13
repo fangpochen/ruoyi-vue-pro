@@ -1,7 +1,7 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # EML 邮件管理系统开发规范
 
@@ -544,4 +544,5 @@ volumes:
 ---
 
 **方总牛逼** 🚀
+
 

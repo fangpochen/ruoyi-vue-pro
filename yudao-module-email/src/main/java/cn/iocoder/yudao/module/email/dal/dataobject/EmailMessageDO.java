@@ -1,11 +1,9 @@
-package cn.iocoder.yudao.module.system.dal.dataobject.email;
+package cn.iocoder.yudao.module.email.dal.dataobject;
 
 import cn.iocoder.yudao.framework.mybatis.core.dataobject.BaseDO;
 import com.baomidou.mybatisplus.annotation.KeySequence;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -16,8 +14,8 @@ import java.util.List;
  *
  * @author 方总牛逼
  */
-@TableName(value = "system_email_message", autoResultMap = true)
-@KeySequence("system_email_message_seq")
+@TableName("system_email_message")
+@KeySequence("email_message_seq") // 用于 Oracle、PostgreSQL、Kingbase、DB2、H2 数据库的主键自增。如果是 MySQL 等数据库，可不写。
 @Data
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
@@ -27,79 +25,76 @@ import java.util.List;
 public class EmailMessageDO extends BaseDO {
 
     /**
-     * 主键
+     * 主键ID
      */
     @TableId
     private Long id;
-
+    
     /**
      * 导入批次ID
      */
     private Long importBatchId;
-
+    
     /**
-     * Message-ID头
+     * 邮件Message-ID头
      */
     private String messageId;
-
+    
     /**
      * 发件人
      */
     private String sender;
-
+    
     /**
-     * 收件人列表(JSON)
+     * 收件人列表(JSON格式)
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> recipients;
-
+    private String recipients;
+    
     /**
-     * 抄送列表(JSON)
+     * 抄送列表(JSON格式)
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> ccRecipients;
-
+    private String ccRecipients;
+    
     /**
-     * 密送列表(JSON)
+     * 密送列表(JSON格式)
      */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private List<String> bccRecipients;
-
+    private String bccRecipients;
+    
     /**
-     * 主题
+     * 邮件主题
      */
     private String subject;
-
+    
     /**
      * 发送时间
      */
     private LocalDateTime sendDate;
-
+    
     /**
      * 接收时间
      */
     private LocalDateTime receiveDate;
-
+    
     /**
      * 纯文本内容
      */
     private String contentText;
-
+    
     /**
      * HTML内容
      */
     private String contentHtml;
-
+    
     /**
      * 原始文件路径
      */
     private String originalPath;
-
+    
     /**
      * 附件数量
      */
     private Integer attachmentCount;
-
+    
     /**
      * 是否标记星标
      */
