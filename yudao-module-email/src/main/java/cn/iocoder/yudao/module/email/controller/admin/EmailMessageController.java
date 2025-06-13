@@ -9,7 +9,9 @@ import cn.iocoder.yudao.module.email.controller.admin.vo.EmailMessageRespVO;
 import cn.iocoder.yudao.module.email.controller.admin.vo.EmailStatisticsRespVO;
 import cn.iocoder.yudao.module.email.convert.EmailMessageConvert;
 import cn.iocoder.yudao.module.email.dal.dataobject.EmailMessageDO;
+import cn.iocoder.yudao.module.email.dal.dataobject.EmailAttachmentDO;
 import cn.iocoder.yudao.module.email.service.EmailMessageService;
+import cn.iocoder.yudao.module.email.service.EmailAttachmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,7 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
+import java.io.IOException;
+import java.util.List;
 
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 
@@ -39,6 +44,9 @@ public class EmailMessageController {
     @Resource
     private EmailMessageService emailMessageService;
 
+    @Resource
+    private EmailAttachmentService emailAttachmentService;
+
     @GetMapping("/page")
     @Operation(summary = "获得邮件消息分页")
     @PreAuthorize("@ss.hasPermission('system:eml:query')")
@@ -53,7 +61,12 @@ public class EmailMessageController {
     @PreAuthorize("@ss.hasPermission('system:eml:query')")
     public CommonResult<EmailMessageRespVO> getEmailMessage(@RequestParam("id") Long id) {
         EmailMessageDO emailMessage = emailMessageService.getEmailMessage(id);
-        return success(EmailMessageConvert.INSTANCE.convert(emailMessage));
+        List<EmailAttachmentDO> attachments = emailAttachmentService.getAttachmentsByEmailId(id);
+        
+        EmailMessageRespVO respVO = EmailMessageConvert.INSTANCE.convert(emailMessage);
+        respVO.setAttachments(EmailMessageConvert.INSTANCE.convertAttachmentList(attachments));
+        
+        return success(respVO);
     }
 
     @PutMapping("/toggle-star")
@@ -80,6 +93,28 @@ public class EmailMessageController {
     public CommonResult<EmailStatisticsRespVO> getEmailStatistics() {
         EmailStatisticsRespVO statistics = emailMessageService.getEmailStatistics();
         return success(statistics);
+    }
+
+    @GetMapping("/attachment/download/{attachmentId}")
+    @Operation(summary = "下载邮件附件")
+    @Parameter(name = "attachmentId", description = "附件ID", required = true, example = "1024")
+    @PreAuthorize("@ss.hasPermission('system:eml:query')")
+    public void downloadAttachment(@PathVariable("attachmentId") Long attachmentId, HttpServletResponse response) throws IOException {
+        // 获取附件信息
+        EmailAttachmentDO attachment = emailAttachmentService.getAttachmentById(attachmentId);
+        
+        // 下载附件内容
+        byte[] content = emailAttachmentService.downloadAttachment(attachmentId);
+        
+        String filename = attachment.getFilename() != null ? attachment.getFilename() : "attachment";
+        String contentType = attachment.getContentType() != null ? attachment.getContentType() : "application/octet-stream";
+        
+        response.setContentType(contentType);
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        response.setContentLength(content.length);
+        
+        response.getOutputStream().write(content);
+        response.getOutputStream().flush();
     }
 
     // 添加测试接口，无需认证

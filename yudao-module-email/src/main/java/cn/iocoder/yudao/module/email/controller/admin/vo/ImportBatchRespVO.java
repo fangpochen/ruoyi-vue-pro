@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.email.controller.admin.vo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
  */
 @Schema(description = "管理后台 - 导入批次 Response VO")
 @Data
+@Builder
 public class ImportBatchRespVO {
 
     @Schema(description = "主键ID", requiredMode = Schema.RequiredMode.REQUIRED, example = "1")

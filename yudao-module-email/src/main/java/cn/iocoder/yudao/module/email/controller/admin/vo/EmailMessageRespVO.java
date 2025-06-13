@@ -63,4 +63,7 @@ public class EmailMessageRespVO {
     @Schema(description = "创建时间")
     private LocalDateTime createTime;
 
+    @Schema(description = "附件列表")
+    private List<EmailAttachmentRespVO> attachments;
+
 }

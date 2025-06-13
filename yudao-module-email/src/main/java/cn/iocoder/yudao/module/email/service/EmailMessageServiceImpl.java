@@ -4,7 +4,9 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.email.controller.admin.vo.EmailMessagePageReqVO;
 import cn.iocoder.yudao.module.email.controller.admin.vo.EmailStatisticsRespVO;
 import cn.iocoder.yudao.module.email.dal.dataobject.EmailMessageDO;
+import cn.iocoder.yudao.module.email.dal.dataobject.EmailAttachmentDO;
 import cn.iocoder.yudao.module.email.dal.mysql.EmailMessageMapper;
+import cn.iocoder.yudao.module.email.dal.mysql.EmailAttachmentMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,12 @@ public class EmailMessageServiceImpl implements EmailMessageService {
 
     @Resource
     private EmailMessageMapper emailMessageMapper;
+
+    @Resource
+    private EmailAttachmentMapper emailAttachmentMapper;
+
+    @Resource
+    private EmailAttachmentService emailAttachmentService;
 
     @Override
     public PageResult<EmailMessageDO> getEmailMessagePage(@Valid EmailMessagePageReqVO pageReqVO) {

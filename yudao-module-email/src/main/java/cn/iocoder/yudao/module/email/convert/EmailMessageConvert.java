@@ -3,7 +3,9 @@ package cn.iocoder.yudao.module.email.convert;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.email.controller.admin.vo.EmailMessageRespVO;
+import cn.iocoder.yudao.module.email.controller.admin.vo.EmailAttachmentRespVO;
 import cn.iocoder.yudao.module.email.dal.dataobject.EmailMessageDO;
+import cn.iocoder.yudao.module.email.dal.dataobject.EmailAttachmentDO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
@@ -23,6 +25,7 @@ public interface EmailMessageConvert {
     @Mapping(target = "recipients", expression = "java(parseJsonToList(bean.getRecipients()))")
     @Mapping(target = "ccRecipients", expression = "java(parseJsonToList(bean.getCcRecipients()))")
     @Mapping(target = "bccRecipients", expression = "java(parseJsonToList(bean.getBccRecipients()))")
+    @Mapping(target = "attachments", ignore = true)
     EmailMessageRespVO convert(EmailMessageDO bean);
 
     default List<String> parseJsonToList(String json) {
@@ -41,5 +44,9 @@ public interface EmailMessageConvert {
     }
 
     List<EmailMessageRespVO> convertList(List<EmailMessageDO> list);
+
+    EmailAttachmentRespVO convertAttachment(EmailAttachmentDO bean);
+
+    List<EmailAttachmentRespVO> convertAttachmentList(List<EmailAttachmentDO> list);
 
 }
