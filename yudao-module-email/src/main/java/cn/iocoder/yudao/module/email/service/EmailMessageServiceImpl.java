@@ -7,11 +7,15 @@ import cn.iocoder.yudao.module.email.dal.dataobject.EmailMessageDO;
 import cn.iocoder.yudao.module.email.dal.dataobject.EmailAttachmentDO;
 import cn.iocoder.yudao.module.email.dal.mysql.EmailMessageMapper;
 import cn.iocoder.yudao.module.email.dal.mysql.EmailAttachmentMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import javax.validation.Valid;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.email.enums.ErrorCodeConstants.EMAIL_MESSAGE_NOT_EXISTS;
@@ -73,20 +77,59 @@ public class EmailMessageServiceImpl implements EmailMessageService {
     public EmailStatisticsRespVO getEmailStatistics() {
         EmailStatisticsRespVO statistics = new EmailStatisticsRespVO();
         
-        // 邮件总数
-        statistics.setTotalCount(emailMessageMapper.selectCount());
-        
-        // 已标记星标数量
-        statistics.setStarredCount(emailMessageMapper.selectCount(EmailMessageDO::getIsStarred, true));
-        
-        // 有附件的邮件数量 - 暂时设为0，后续可以用SQL实现
-        statistics.setWithAttachmentsCount(0L);
-        
-        // 今日、本周、本月新增数量可以根据需要实现
-        // 这里先设置为0，后续可以根据create_time字段统计
-        statistics.setTodayCount(0L);
-        statistics.setWeekCount(0L);
-        statistics.setMonthCount(0L);
+        try {
+            // 邮件总数
+            Long totalCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false));
+            statistics.setTotalCount(totalCount != null ? totalCount : 0L);
+            
+            // 已标记星标数量 - 注意处理NULL值
+            Long starredCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false)
+                .eq(EmailMessageDO::getIsStarred, true));
+            statistics.setStarredCount(starredCount != null ? starredCount : 0L);
+            
+            // 有附件的邮件数量 - 注意处理NULL值和0值
+            Long withAttachmentsCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false)
+                .gt(EmailMessageDO::getAttachmentCount, 0));
+            statistics.setWithAttachmentsCount(withAttachmentsCount != null ? withAttachmentsCount : 0L);
+            
+            // 今日新增邮件数
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime todayEnd = todayStart.plusDays(1);
+            Long todayCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false)
+                .between(EmailMessageDO::getCreateTime, todayStart, todayEnd));
+            statistics.setTodayCount(todayCount != null ? todayCount : 0L);
+            
+            // 本周新增邮件数
+            LocalDateTime weekStart = LocalDate.now().with(DayOfWeek.MONDAY).atStartOfDay();
+            Long weekCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false)
+                .ge(EmailMessageDO::getCreateTime, weekStart));
+            statistics.setWeekCount(weekCount != null ? weekCount : 0L);
+            
+            // 本月新增邮件数
+            LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+            Long monthCount = emailMessageMapper.selectCount(new LambdaQueryWrapper<EmailMessageDO>()
+                .eq(EmailMessageDO::getDeleted, false)
+                .ge(EmailMessageDO::getCreateTime, monthStart));
+            statistics.setMonthCount(monthCount != null ? monthCount : 0L);
+            
+            log.info("邮件统计信息 - 总数:{}, 星标:{}, 有附件:{}, 今日:{}, 本周:{}, 本月:{}", 
+                totalCount, starredCount, withAttachmentsCount, todayCount, weekCount, monthCount);
+            
+        } catch (Exception e) {
+            log.error("获取邮件统计信息失败", e);
+            // 如果发生异常，返回全0的统计信息，避免返回null或负数
+            statistics.setTotalCount(0L);
+            statistics.setStarredCount(0L);
+            statistics.setWithAttachmentsCount(0L);
+            statistics.setTodayCount(0L);
+            statistics.setWeekCount(0L);
+            statistics.setMonthCount(0L);
+        }
         
         return statistics;
     }
